@@ -1,1 +1,1 @@
-HATA: Site bizi içeri almadı (Timeout). Mevcut URL: https://freeiptv2023-d.ottc.xyz/index.php
+HATA: Site hala index.php'de çakılı. Sayfa Başlığı: freeiptv
