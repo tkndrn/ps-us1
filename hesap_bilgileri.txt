@@ -1,23 +1,23 @@
-KRITIK HATA: Message: session not created: cannot connect to chrome at 127.0.0.1:42255
+BOT HATASI: Message: session not created: cannot connect to chrome at 127.0.0.1:40495
 from session not created: This version of ChromeDriver only supports Chrome version 147
-Current browser version is 146.0.7680.0; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#sessionnotcreatedexception
+Current browser version is 146.0.7680.164; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#sessionnotcreatedexception
 Stacktrace:
-#0 0x556de751bb9a <unknown>
-#1 0x556de6f1d265 <unknown>
-#2 0x556de6f6070f <unknown>
-#3 0x556de6f5f4d0 <unknown>
-#4 0x556de6f54491 <unknown>
-#5 0x556de6fa4f9e <unknown>
-#6 0x556de6fa468c <unknown>
-#7 0x556de6f635cf <unknown>
-#8 0x556de6f64391 <unknown>
-#9 0x556de74e107b <unknown>
-#10 0x556de74e403d <unknown>
-#11 0x556de74cd838 <unknown>
-#12 0x556de74e4bd0 <unknown>
-#13 0x556de74b42b0 <unknown>
-#14 0x556de7508de8 <unknown>
-#15 0x556de7508fb8 <unknown>
-#16 0x556de751a60e <unknown>
-#17 0x7fe49f09caa4 <unknown>
-#18 0x7fe49f129c6c <unknown>
+#0 0x55ad734f9b9a <unknown>
+#1 0x55ad72efb265 <unknown>
+#2 0x55ad72f3e70f <unknown>
+#3 0x55ad72f3d4d0 <unknown>
+#4 0x55ad72f32491 <unknown>
+#5 0x55ad72f82f9e <unknown>
+#6 0x55ad72f8268c <unknown>
+#7 0x55ad72f415cf <unknown>
+#8 0x55ad72f42391 <unknown>
+#9 0x55ad734bf07b <unknown>
+#10 0x55ad734c203d <unknown>
+#11 0x55ad734ab838 <unknown>
+#12 0x55ad734c2bd0 <unknown>
+#13 0x55ad734922b0 <unknown>
+#14 0x55ad734e6de8 <unknown>
+#15 0x55ad734e6fb8 <unknown>
+#16 0x55ad734f860e <unknown>
+#17 0x7fec0de9caa4 <unknown>
+#18 0x7fec0df29c6c <unknown>
