@@ -4,7 +4,7 @@ import time
 import os
 
 def github_run():
-    print("[*] Operasyon başladı: 12 haneli güncel User/Pass avı...")
+    print("[*] Operasyon başladı: Derin arama modu...")
     
     options = uc.ChromeOptions()
     options.add_argument('--headless')
@@ -14,12 +14,11 @@ def github_run():
 
     driver = None
     try:
-        # Sürüm hatası almamak için otomatik ayarlı başlatıyoruz
         driver = uc.Chrome(options=options, version_main=None) 
         driver.get("https://freeiptv2023-d.ottc.xyz/index.php")
         
-        print("[*] Site açıldı, sayaç için 25 saniye bekleniyor...")
-        time.sleep(25) 
+        print("[*] Site açıldı, 30 saniye bekleniyor (Daha uzun bekleme)...")
+        time.sleep(30) 
 
         print("[+] Butona basılıyor...")
         driver.execute_script("""
@@ -29,34 +28,33 @@ def github_run():
             if(btn) { btn.click(); }
         """)
         
-        print("[*] Yeni sayfanın yüklenmesi bekleniyor (15 sn)...")
-        time.sleep(15)
+        print("[*] Yönlendirme bekleniyor (20 sn)...")
+        time.sleep(20)
         
         source = driver.page_source
         
-        # Sitenin o gün ürettiği her türlü 12 haneli rakamı yakalar
-        numbers = re.findall(r'value="([0-9]{12})"', source)
+        # SÜZGEÇ GENİŞLETİLDİ: Hem 10 hem 12 haneli rakamları yakalar
+        # Bazı günlerde site 10 haneli de üretebiliyor, ikisini de kapsıyoruz.
+        numbers = re.findall(r'value="([0-9]{10,12})"', source)
 
         if len(numbers) >= 2:
             user = numbers[0]
             pwd = numbers[1]
             
-            # Dosyayı her gün taze bilgilerle güncelliyoruz
-            with open("hesap_bilgileri.txt", "w", encoding="utf-8") as f:
-                f.write(f"USER: {user}\n")
-                f.write(f"PASS: {pwd}\n")
-                f.write(f"SON_GUNCELLEME: {time.strftime('%d-%m-%Y %H:%M:%S')}\n")
+            output = f"USER: {user}\nPASS: {pwd}\nGUNCELLEME: {time.strftime('%d-%m-%Y %H:%M:%S')}"
             
-            print(f"✅ BAŞARILI! Bugünün verileri: {user} / {pwd}")
+            with open("hesap_bilgileri.txt", "w", encoding="utf-8") as f:
+                f.write(output)
+            
+            print(f"✅ BAŞARILI! Veri yazıldı: {user} / {pwd}")
         else:
-            print("[-] HATA: Rakamlar bulunamadı. Site botu engellemiş olabilir.")
+            print("[-] HATA: Rakamlar bulunamadı!")
+            # Eğer rakam bulamazsa, dosyanın içine "HATA" yazsın ki boş kalmasın
+            with open("hesap_bilgileri.txt", "w", encoding="utf-8") as f:
+                f.write(f"HATA: Veri bulunamadı! Sayfa Başlığı: {driver.title}\nSaat: {time.strftime('%H:%M:%S')}")
             
     except Exception as e:
         print(f"[!] KRİTİK HATA: {e}")
     finally:
         if driver:
             driver.quit()
-            print("[*] Tarayıcı kapatıldı.")
-
-if __name__ == "__main__":
-    github_run()
