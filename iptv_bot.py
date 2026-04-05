@@ -4,51 +4,67 @@ import time
 import os
 
 def github_run():
-    print("[*] Operasyon başladı: Sadece User ve Pass çekiliyor...")
+    print("[*] Operasyon başladı...")
     
     options = uc.ChromeOptions()
-    options.add_argument('--headless') # GitHub için ekran kapalı mod şart
+    options.add_argument('--headless')
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
-    
+    # Siteyi kandırmak için gerçekçi bir pencere boyutu
+    options.add_argument('--window-size=1920,1080')
+
     driver = None
     try:
-        # Sürüm çakışmasını önlemek için version_main=None
+        print("[*] Tarayıcı başlatılıyor...")
         driver = uc.Chrome(options=options, version_main=None) 
         
+        print("[*] Siteye gidiliyor...")
         driver.get("https://freeiptv2023-d.ottc.xyz/index.php")
-        print("[*] Site açıldı, 20 saniye bekleniyor...")
-        time.sleep(20) 
         
-        print("[+] Butona basılıyor...")
-        driver.execute_script("document.querySelector('input[type=\"submit\"]').click();")
+        # Sitenin yüklenmesi ve bot kontrolü için uzun süre bekle
+        print("[*] 25 saniye bekleniyor (Bot koruması için)...")
+        time.sleep(25) 
         
-        print("[*] Yönlendirme bekleniyor...")
-        time.sleep(10)
-        
-        if "action=view" in driver.current_url:
-            source = driver.page_source
-            # 10-12 haneli rakamları ayıklıyoruz (User ve Pass)
-            numbers = re.findall(r'value="([0-9]{10,12})"', source)
+        # Sayfa başlığını kontrol et (Doğru yerde miyiz?)
+        print(f"[*] Şu anki sayfa başlığı: {driver.title}")
 
-            if len(numbers) >= 2:
-                user = numbers[0]
-                pwd = numbers[1]
-                
-                # Dosyayı oluşturup içine yazıyoruz
-                with open("hesap_bilgileri.txt", "w", encoding="utf-8") as f:
-                    f.write(f"USER: {user}\n")
-                    f.write(f"PASS: {pwd}\n")
-                    f.write(f"SON GUNCELLEME: {time.strftime('%d-%m-%Y %H:%M:%S')}\n")
-                
-                print(f"✅ BAŞARILI! User: {user} | Pass: {pwd}")
-            else:
-                print("[-] HATA: Sayfada User/Pass bulunamadı.")
+        print("[+] Butona basılıyor (JavaScript)...")
+        driver.execute_script("""
+            var btn = document.querySelector('input[type="submit"]') || 
+                      document.querySelector('button') ||
+                      document.querySelector('.btn-primary');
+            if(btn) { btn.click(); }
+        """)
+        
+        print("[*] Yönlendirme için 15 saniye bekleniyor...")
+        time.sleep(15)
+        
+        print(f"[*] Mevcut URL: {driver.current_url}")
+        
+        # Sayfa içeriğini al
+        source = driver.page_source
+        
+        # Rakamları ayıkla (User ve Pass)
+        numbers = re.findall(r'value="([0-9]{10,12})"', source)
+
+        if len(numbers) >= 2:
+            user = numbers[0]
+            pwd = numbers[1]
+            
+            # Dosyayı oluştur
+            with open("hesap_bilgileri.txt", "w", encoding="utf-8") as f:
+                f.write(f"USER: {user}\n")
+                f.write(f"PASS: {pwd}\n")
+                f.write(f"TARIH: {time.strftime('%d-%m-%Y %H:%M:%S')}\n")
+            
+            print(f"✅ BAŞARILI! Dosya oluşturuldu. User: {user}")
         else:
-            print(f"[-] HATA: Sayfa yönlenmedi. Mevcut URL: {driver.current_url}")
+            print("[-] HATA: User/Pass bulunamadı! Sayfa içeriği bot korumasına takılmış olabilir.")
+            # Hata varsa sayfanın bir kısmını yazdır ki ne gördüğümüzü anlayalım
+            print(f"[*] Sayfa içeriği (İlk 500 karakter): {source[:500]}")
             
     except Exception as e:
-        print(f"[!] HATA OLUŞTU: {e}")
+        print(f"[!] KRİTİK HATA: {e}")
     finally:
         if driver:
             driver.quit()
