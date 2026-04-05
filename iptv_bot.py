@@ -4,52 +4,55 @@ import time
 import os
 
 def github_run():
-    print("[*] Operasyon başladı...")
+    print("[*] Operasyon başladı: Sadece User ve Pass çekiliyor...")
+    
     options = uc.ChromeOptions()
-    options.add_argument('--headless')
+    options.add_argument('--headless') # GitHub için ekran kapalı mod şart
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
     
-    # GitHub'ın en güncel sürümünü kullanması için version_main=None
-    driver = uc.Chrome(options=options, version_main=None) 
-    
+    driver = None
     try:
+        # Sürüm çakışmasını önlemek için version_main=None
+        driver = uc.Chrome(options=options, version_main=None) 
+        
         driver.get("https://freeiptv2023-d.ottc.xyz/index.php")
         print("[*] Site açıldı, 20 saniye bekleniyor...")
-        time.sleep(20) # Bekleme süresini biraz artırdık (Garanti olsun)
+        time.sleep(20) 
         
         print("[+] Butona basılıyor...")
         driver.execute_script("document.querySelector('input[type=\"submit\"]').click();")
         
+        print("[*] Yönlendirme bekleniyor...")
         time.sleep(10)
-        print(f"[*] Mevcut sayfa: {driver.current_url}")
         
         if "action=view" in driver.current_url:
             source = driver.page_source
-            # Regex ile verileri ayıkla
+            # 10-12 haneli rakamları ayıklıyoruz (User ve Pass)
             numbers = re.findall(r'value="([0-9]{10,12})"', source)
-            links = re.findall(r'value="(http[^"]+)"', source)
 
-            if len(numbers) >= 2 and links:
-                user, pwd = numbers[0], numbers[1]
-                host = links[0].rstrip('/')
+            if len(numbers) >= 2:
+                user = numbers[0]
+                pwd = numbers[1]
                 
-                m3u_link = f"{host}/get.php?username={user}&password={pwd}&type=m3u_plus&output=ts"
+                # Dosyayı oluşturup içine yazıyoruz
+                with open("hesap_bilgileri.txt", "w", encoding="utf-8") as f:
+                    f.write(f"USER: {user}\n")
+                    f.write(f"PASS: {pwd}\n")
+                    f.write(f"SON GUNCELLEME: {time.strftime('%d-%m-%Y %H:%M:%S')}\n")
                 
-                # VAR OLAN DOSYANIN ÜZERİNE YAZIYORUZ
-                with open("iptv_listem.m3u", "w", encoding="utf-8") as f:
-                    f.write(f"#EXTM3U\n#EXTINF:-1,KRAL IPTV\n{m3u_link}\n")
-                
-                print(f"✅ LİSTE GÜNCELLENDİ: {user}")
+                print(f"✅ BAŞARILI! User: {user} | Pass: {pwd}")
             else:
-                print("[-] HATA: Veriler sayfada bulunamadı!")
+                print("[-] HATA: Sayfada User/Pass bulunamadı.")
         else:
-            print("[-] HATA: Butona basıldı ama sayfa değişmedi.")
+            print(f"[-] HATA: Sayfa yönlenmedi. Mevcut URL: {driver.current_url}")
             
     except Exception as e:
-        print(f"[!] HATA: {e}")
+        print(f"[!] HATA OLUŞTU: {e}")
     finally:
-        driver.quit()
+        if driver:
+            driver.quit()
+            print("[*] Tarayıcı kapatıldı.")
 
 if __name__ == "__main__":
     github_run()
