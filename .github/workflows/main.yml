@@ -1,8 +1,8 @@
 name: IPTV Otomatik Guncelle
 on:
   schedule:
-    - cron: '0 3 * * *' # Her gece Türkiye saatiyle 06:00 (UTC 03:00) gibi çalışır
-  workflow_dispatch: # Elinle "Run" butonu ekler (Test etmek için)
+    - cron: '0 3 * * *' # Her gece 03:00'te (UTC) otomatik çalışır
+  workflow_dispatch: # Manuel çalıştırma butonu ekler
 
 jobs:
   build:
@@ -17,7 +17,7 @@ jobs:
 
       - name: Kütüphaneleri Yukle
         run: |
-          pip install undetected-chromedriver selenium
+          pip install -r requirements.txt
 
       - name: Botu Calistir
         run: python iptv_bot.py
@@ -26,6 +26,12 @@ jobs:
         run: |
           git config --global user.name 'GitHub Action'
           git config --global user.email 'action@github.com'
-          git add iptv_listem.m3u
-          git commit -m "Oto Guncelleme yapıldı" || exit 0
-          git push
+          # Dosya oluştuysa GitHub'a geri yükle
+          if [ -f hesap_bilgileri.txt ]; then
+            git add hesap_bilgileri.txt
+            git commit -m "Hesap bilgileri güncellendi" || echo "Değişiklik yok"
+            git push
+          else
+            echo "HATA: hesap_bilgileri.txt bulunamadı!"
+            exit 1
+          fi
