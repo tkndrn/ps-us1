@@ -1,69 +1,84 @@
+
 import undetected_chromedriver as uc
-import re
 import time
+import re
 import os
 
-def github_run():
-    print("[*] Operasyon: İnsan simülasyonu aktif...")
+def tam_gercekci_sizma_v7():
+    print("[*] OPERASYON: GitHub Sunucusunda V7 Modu Başladı...")
     
     options = uc.ChromeOptions()
-    options.add_argument('--headless')
+    
+    # GitHub Actions için en stabil ayarlar bunlardır:
+    options.add_argument('--headless') # Sunucuda ekran olmadığı için mecburuz
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
-    options.add_argument('--disable-gpu')
-    # Daha inandırıcı bir kimlik
-    options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+    options.add_argument("--window-size=1920,1080")
+    
+    # Senin sürümle tam uyumlu User-Agent
+    ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+    options.add_argument(f'user-agent={ua}')
 
     driver = None
     try:
-        # Sürüm 146'da sabitliyoruz çünkü senin sistemde o çalışıyor
-        driver = uc.Chrome(options=options, version_main=146) 
-        driver.get("https://freeiptv2023-d.ottc.xyz/index.php")
+        # Sürüm 146'yı zorla (Hata almamak için en kritik yer)
+        driver = uc.Chrome(version_main=146, options=options)
         
-        # Sitedeki reklamların ve sayacın dolması için uzun bekleme
-        print("[*] Site açıldı, 45 saniye sabırla bekleniyor...")
-        time.sleep(45) 
-
-        print("[+] Butona basılıyor (Çift yöntem)...")
-        # Hem JavaScript ile hem de form göndererek şansımızı deniyoruz
+        driver.get("https://freeiptv2023-d.ottc.xyz/index.php")
+        print("[*] Site yüklendi, sayaç bekleniyor (20 sn)...")
+        time.sleep(20)
+        
+        print("[+] Butona basılıyor...")
         driver.execute_script("""
-            var forms = document.forms;
-            if(forms.length > 0) { forms[0].submit(); }
-            else { 
-                var btn = document.querySelector('input[type="submit"]') || document.querySelector('button');
-                if(btn) btn.click();
+            var btn = document.querySelector('input[type="submit"]') || 
+                      document.querySelector('button') ||
+                      document.querySelector('.btn-primary');
+            if(btn) { 
+                btn.scrollIntoView();
+                btn.click(); 
             }
         """)
         
-        print("[*] Rakamların yüklenmesi için 25 saniye daha...")
-        time.sleep(25)
-        
-        source = driver.page_source
-        
-        # SÜZGEÇ: Sadece value içinde değil, sayfanın herhangi bir yerindeki 10-12 haneli rakamları ara
-        numbers = re.findall(r'([0-9]{10,12})', source)
+        print("[*] Yönlendirme kontrol ediliyor (Max 30 sn)...")
+        found = False
+        for _ in range(30):
+            if "action=view" in driver.current_url:
+                found = True
+                break
+            time.sleep(1)
+            
+        if found:
+            print("[+] Hedef sayfa açıldı! Veriler çekiliyor...")
+            time.sleep(5)
+            
+            source = driver.page_source
+            # Value içindeki 10-12 haneli rakamları bul
+            creds = re.findall(r'value="([0-9]{10,12})"', source)
+            # URL'leri bul
+            links = re.findall(r'value="(http[^"]+)"', source)
 
-        # Kendini tekrar eden rakamları temizle (Set kullanarak)
-        unique_numbers = list(dict.fromkeys(numbers))
-
-        if len(unique_numbers) >= 2:
-            user, pwd = unique_numbers[0], unique_numbers[1]
-            content = f"USER: {user}\nPASS: {pwd}\nSAAT: {time.strftime('%H:%M:%S')}"
-            print(f"✅ BULDUM: {user} / {pwd}")
+            if len(creds) >= 2 and links:
+                host, user, pwd = links[0], creds[0], creds[1]
+                content = f"USER: {user}\nPASS: {pwd}\nHOST: {host}\nSAAT: {time.strftime('%H:%M:%S')}"
+                print(f"✅ İŞLEM BAŞARILI: {user}")
+            else:
+                content = "HATA: Rakamlar veya Link bulunamadı. Sayfa içeriği değişmiş."
+                print("[-] Bilgiler ayıklanamadı.")
         else:
-            # Eğer rakam bulamazsa sayfanın o anki görüntüsünü anlamak için kodun bir kısmını kaydedelim
-            debug_info = source[:500].replace('\n', ' ')
-            content = f"HATA: Rakam yok! Sayfa: {driver.title}\nLog: {debug_info}"
-            print("[-] Maalesef rakamlar yakalanamadı.")
+            content = "HATA: Yönlendirme gerçekleşmedi (Timeout)."
+            print("[!] Hata: Site hala bot olduğundan şüpheleniyor.")
 
     except Exception as e:
-        content = f"SISTEM HATASI: {str(e)}"
-    
-    with open("hesap_bilgileri.txt", "w", encoding="utf-8") as f:
-        f.write(content)
-    
-    if driver:
-        driver.quit()
+        content = f"BOT HATASI: {str(e)}"
+        print(f"[!] Hata: {e}")
+        
+    finally:
+        # SONUCU YAZ (Mutlaka hesap_bilgileri.txt adını kullan ki yml dosyası pushlasın)
+        with open("hesap_bilgileri.txt", "w", encoding="utf-8") as f:
+            f.write(content)
+        
+        if driver:
+            driver.quit()
 
 if __name__ == "__main__":
-    github_run()
+    tam_gercekci_sizma_v7()
