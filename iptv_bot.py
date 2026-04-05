@@ -4,8 +4,8 @@ import re
 import os
 import random
 
-def tam_gercekci_sizma_v8():
-    print("[*] OPERASYON: V8 Kilid Kırıcı Başladı...")
+def tam_gercekci_sizma_v9():
+    print("[*] OPERASYON: V9 Kapı Kırıcı Başladı...")
     
     options = uc.ChromeOptions()
     options.add_argument('--headless')
@@ -13,69 +13,68 @@ def tam_gercekci_sizma_v8():
     options.add_argument('--disable-dev-shm-usage')
     options.add_argument("--window-size=1920,1080")
     
-    # Her seferinde biraz farklı bir kimlik (User-Agent)
     ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
     options.add_argument(f'user-agent={ua}')
 
     driver = None
     try:
-        # Sürüm 146 zorunlu
         driver = uc.Chrome(version_main=146, options=options)
-        
         driver.get("https://freeiptv2023-d.ottc.xyz/index.php")
-        print("[*] Site açıldı, insan simülasyonu yapılıyor...")
+        print("[*] Site açıldı, sinsi bekleme moduna geçildi...")
         
-        # Sayfayı yavaşça aşağı kaydır (İnsan taklidi)
-        driver.execute_script("window.scrollTo(0, 500);")
-        time.sleep(random.randint(35, 45)) # 35-45 sn arası rastgele bekle (Sabit değil)
+        # 45-55 saniye arası uzun bekleme (Sitenin içindeki gizli kontrollerin dolması için)
+        time.sleep(random.randint(45, 55)) 
 
-        print("[+] Buton aranıyor ve tetikleniyor...")
-        # Butonu bulup hem tıkla hem de formu zorla gönder
+        print("[+] Buton üzerinde 'İnsan Simülasyonu' yapılıyor...")
+        # JavaScript ile butonu bul ve "İnsan gibi" etkileşime gir
         driver.execute_script("""
             var forms = document.forms;
-            if(forms.length > 0) {
-                console.log("Form bulundu, gönderiliyor...");
-                forms[0].submit();
-            } else {
-                var btn = document.querySelector('input[type="submit"]') || document.querySelector('button');
-                if(btn) btn.click();
+            var btn = document.querySelector('input[type="submit"]') || 
+                      document.querySelector('button') || 
+                      document.querySelector('.btn-primary');
+            
+            if(btn) {
+                btn.focus(); // Butona odaklan
+                btn.dispatchEvent(new MouseEvent('mouseover', {bubbles: true})); // Fareyi üzerine getir
+                setTimeout(function(){ 
+                    btn.click(); // 1 saniye sonra tıkla
+                    if(forms.length > 0) forms[0].submit(); // Eğer tıklama yemezse formu zorla gönder
+                }, 1000);
             }
         """)
         
-        print("[*] Yönlendirme bekleniyor (Max 40 sn)...")
+        print("[*] Yönlendirme bekleniyor (Max 45 sn)...")
         found = False
-        for i in range(40):
-            # Eğer URL değiştiyse veya yeni sayfa geldiyse
-            if "action=view" in driver.current_url or "view.php" in driver.current_url:
+        for i in range(45):
+            # URL'de değişim var mı? (index.php dışına çıktı mı?)
+            if "index.php" not in driver.current_url or "action=view" in driver.current_url:
                 found = True
                 break
             time.sleep(1)
             if i % 10 == 0: print(f"[*] Bekleniyor... {i}. saniye")
             
         if found:
-            print("[+] BİNGO! Hedef sayfa açıldı.")
-            time.sleep(7) # Verilerin tam yüklenmesi için biraz daha sabır
+            print(f"[+] Sayfa değişti! Yeni URL: {driver.current_url}")
+            time.sleep(10) # Sayfa tam otursun
             
             source = driver.page_source
-            # Value içindeki rakamları ve linkleri topla
             creds = re.findall(r'value="([0-9]{10,12})"', source)
             links = re.findall(r'value="(http[^"]+)"', source)
 
             if len(creds) >= 2 and links:
                 host, user, pwd = links[0], creds[0], creds[1]
                 content = f"USER: {user}\nPASS: {pwd}\nHOST: {host}\nSAAT: {time.strftime('%H:%M:%S')}"
-                print(f"✅ ZAFER: {user} / {pwd}")
+                print(f"✅ ZAFER: {user}")
             else:
-                content = f"HATA: Sayfa açıldı ama rakamlar saklanmış. Başlık: {driver.title}"
+                content = f"HATA: Sayfa açıldı ama veri yok. URL: {driver.current_url}"
                 print("[-] Veri çekilemedi.")
         else:
-            # Burası önemli: Eğer hala yönlenmiyorsa sayfanın ne dediğini görelim
-            content = f"HATA: Site bizi içeri almadı (Timeout). Mevcut URL: {driver.current_url}"
-            print(f"[!] Giriş başarısız. URL: {driver.current_url}")
+            # Hala aynı sayfadaysak ekranın "görüntüsünü" (source) bir miktar analiz edelim
+            content = f"HATA: Site hala index.php'de çakılı. Sayfa Başlığı: {driver.title}"
+            print("[!] Kapı açılmadı.")
 
     except Exception as e:
         content = f"SİSTEM HATASI: {str(e)}"
-        print(f"[!] Hata: {e}")
         
     finally:
         with open("hesap_bilgileri.txt", "w", encoding="utf-8") as f:
@@ -84,4 +83,4 @@ def tam_gercekci_sizma_v8():
             driver.quit()
 
 if __name__ == "__main__":
-    tam_gercekci_sizma_v8()
+    tam_gercekci_sizma_v9()
