@@ -4,25 +4,28 @@ import time
 import os
 
 def github_run():
-    print("[*] Operasyon başladı...")
+    print("[*] Operasyon başladı: Sürüm uyumlu mod...")
     
     options = uc.ChromeOptions()
     options.add_argument('--headless')
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
+    options.add_argument('--disable-gpu')
 
     driver = None
     try:
-        # Botu başlat
-        driver = uc.Chrome(options=options, version_main=None) 
+        # version_main=None ve suppress_welcome=True ile en uyumlu hali başlatıyoruz
+        driver = uc.Chrome(options=options, version_main=None, suppress_welcome=True) 
         driver.get("https://freeiptv2023-d.ottc.xyz/index.php")
         
-        print("[*] Bekleniyor...")
-        time.sleep(30) # Sitenin açılması için süre
+        print("[*] Site açıldı, bekleme moduna geçildi (35 sn)...")
+        time.sleep(35) 
 
-        # Butona tıkla
+        print("[+] Butona basılıyor...")
         driver.execute_script("document.querySelector('input[type=\"submit\"]').click();")
-        time.sleep(20) # Yönlendirme süresi
+        
+        print("[*] Sonuç sayfası bekleniyor (20 sn)...")
+        time.sleep(20)
         
         source = driver.page_source
         numbers = re.findall(r'value="([0-9]{10,12})"', source)
@@ -30,16 +33,17 @@ def github_run():
         if len(numbers) >= 2:
             user, pwd = numbers[0], numbers[1]
             content = f"USER: {user}\nPASS: {pwd}\nSAAT: {time.strftime('%H:%M:%S')}"
-            print(f"✅ BULDUM: {user}")
+            print(f"✅ BAŞARILI: {user}")
         else:
-            content = f"HATA: Rakamlar bulunamadı! Sayfa Başlığı: {driver.title}\nZaman: {time.strftime('%H:%M:%S')}"
-            print("[-] Rakamlar yok.")
+            content = f"HATA: Rakamlar bulunamadı! Sayfa: {driver.title}"
+            print("[-] Rakam yok.")
 
     except Exception as e:
-        content = f"KRITIK HATA: {str(e)}"
-        print(f"[!] Hata: {e}")
+        # Hata mesajını txt dosyasına yazdır ki görelim
+        content = f"BOT HATASI: {str(e)}"
+        print(f"[!] HATA: {e}")
     
-    # NE OLURSA OLSUN DOSYAYA YAZ!
+    # SONUCU DOSYAYA YAZ
     with open("hesap_bilgileri.txt", "w", encoding="utf-8") as f:
         f.write(content)
     
