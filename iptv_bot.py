@@ -4,7 +4,7 @@ import time
 import os
 
 def github_run():
-    print("[*] Operasyon başladı: 12 haneli User/Pass avı...")
+    print("[*] Operasyon başladı: 12 haneli güncel User/Pass avı...")
     
     options = uc.ChromeOptions()
     options.add_argument('--headless')
@@ -14,10 +14,11 @@ def github_run():
 
     driver = None
     try:
+        # Sürüm hatası almamak için otomatik ayarlı başlatıyoruz
         driver = uc.Chrome(options=options, version_main=None) 
         driver.get("https://freeiptv2023-d.ottc.xyz/index.php")
         
-        print("[*] Site yüklendi, bot koruması için 25 saniye bekleniyor...")
+        print("[*] Site açıldı, sayaç için 25 saniye bekleniyor...")
         time.sleep(25) 
 
         print("[+] Butona basılıyor...")
@@ -28,30 +29,27 @@ def github_run():
             if(btn) { btn.click(); }
         """)
         
-        print("[*] Yönlendirme bekleniyor (15 sn)...")
+        print("[*] Yeni sayfanın yüklenmesi bekleniyor (15 sn)...")
         time.sleep(15)
         
         source = driver.page_source
         
-        # SENİN VERDİĞİN FORMAT: 12 haneli rakamları yakalar
-        # Bu Regex tam olarak 12 haneli sayıları hedef alır
+        # Sitenin o gün ürettiği her türlü 12 haneli rakamı yakalar
         numbers = re.findall(r'value="([0-9]{12})"', source)
 
         if len(numbers) >= 2:
-            # İlk 12 hane User, ikinci 12 hane Pass
             user = numbers[0]
             pwd = numbers[1]
             
-            # Dosyaya tertemiz yazıyoruz
+            # Dosyayı her gün taze bilgilerle güncelliyoruz
             with open("hesap_bilgileri.txt", "w", encoding="utf-8") as f:
                 f.write(f"USER: {user}\n")
                 f.write(f"PASS: {pwd}\n")
-                f.write(f"GUNCELLEME: {time.strftime('%d-%m-%Y %H:%M:%S')}\n")
+                f.write(f"SON_GUNCELLEME: {time.strftime('%d-%m-%Y %H:%M:%S')}\n")
             
-            print(f"✅ BAŞARILI! Yakalanan Veri: {user} / {pwd}")
+            print(f"✅ BAŞARILI! Bugünün verileri: {user} / {pwd}")
         else:
-            print("[-] HATA: 12 haneli rakamlar bulunamadı. Sayfa yapısı değişmiş olabilir.")
-            print(f"[*] Sayfa özeti: {driver.title}")
+            print("[-] HATA: Rakamlar bulunamadı. Site botu engellemiş olabilir.")
             
     except Exception as e:
         print(f"[!] KRİTİK HATA: {e}")
