@@ -1,2 +1,21 @@
-HATA: Kapı hala kilitli. URL: https://freeiptv2023-d.ottc.xyz/index.php
-Başlık: freeiptv
+SISTEM HATASI: Message: javascript error: forms[0].submit is not a function
+  (Session info: chrome=146.0.7680.164)
+Stacktrace:
+#0 0x5582a9002a6a <unknown>
+#1 0x5582a8a11ab5 <unknown>
+#2 0x5582a8a1892b <unknown>
+#3 0x5582a8a1b4ab <unknown>
+#4 0x5582a8aad8d9 <unknown>
+#5 0x5582a8aac7b6 <unknown>
+#6 0x5582a8a57cbf <unknown>
+#7 0x5582a8a58a81 <unknown>
+#8 0x5582a8fc8a64 <unknown>
+#9 0x5582a8fcb951 <unknown>
+#10 0x5582a8fb521e <unknown>
+#11 0x5582a8fcc51e <unknown>
+#12 0x5582a8f9bbe0 <unknown>
+#13 0x5582a8fef9b8 <unknown>
+#14 0x5582a8fefb88 <unknown>
+#15 0x5582a90014de <unknown>
+#16 0x7fcf0429caa4 <unknown>
+#17 0x7fcf04329c6c <unknown>
