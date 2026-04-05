@@ -2,11 +2,11 @@ name: IPTV Otomatik Guncelle
 
 on:
   schedule:
-    - cron: '0 3 * * *' # Her gece Türkiye saatiyle 06:00'da çalışır
-  workflow_dispatch: # İstediğin zaman elle başlatma butonu
+    - cron: '0 3 * * *'
+  workflow_dispatch:
 
 permissions:
-  contents: write # GitHub'a "dosyayı değiştirme yetkim var" der
+  contents: write
 
 jobs:
   build:
@@ -21,16 +21,17 @@ jobs:
         with:
           python-version: '3.9'
 
-      - name: Araçları Yükle
-        run: pip install -r requirements.txt
+      - name: Kütüphaneleri Yukle
+        run: pip install undetected-chromedriver selenium
 
-      - name: Botu Çalıştır ve Veriyi Çek
+      - name: Botu Calistir
         run: python iptv_bot.py
 
-      - name: Değişikliği Kaydet ve Yayınla
+      - name: Degisiklikleri Kaydet
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add hesap_bilgileri.txt
-          # Sadece veri değişmişse (yeni şifre gelmişse) sisteme yükle
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Otomatik Güncelleme: $(date)" && git push)
+          # Değişiklik olsa da olmasa da commit yapmaya zorla (date ekleyerek)
+          git commit -m "Güncelleme: $(date)" || echo "Değişiklik yok ama devam et"
+          git push origin main
