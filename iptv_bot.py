@@ -4,31 +4,23 @@ import time
 import os
 
 def github_run():
-    print("[*] Operasyon başladı...")
+    print("[*] Operasyon başladı: 12 haneli User/Pass avı...")
     
     options = uc.ChromeOptions()
     options.add_argument('--headless')
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
-    # Siteyi kandırmak için gerçekçi bir pencere boyutu
     options.add_argument('--window-size=1920,1080')
 
     driver = None
     try:
-        print("[*] Tarayıcı başlatılıyor...")
         driver = uc.Chrome(options=options, version_main=None) 
-        
-        print("[*] Siteye gidiliyor...")
         driver.get("https://freeiptv2023-d.ottc.xyz/index.php")
         
-        # Sitenin yüklenmesi ve bot kontrolü için uzun süre bekle
-        print("[*] 25 saniye bekleniyor (Bot koruması için)...")
+        print("[*] Site yüklendi, bot koruması için 25 saniye bekleniyor...")
         time.sleep(25) 
-        
-        # Sayfa başlığını kontrol et (Doğru yerde miyiz?)
-        print(f"[*] Şu anki sayfa başlığı: {driver.title}")
 
-        print("[+] Butona basılıyor (JavaScript)...")
+        print("[+] Butona basılıyor...")
         driver.execute_script("""
             var btn = document.querySelector('input[type="submit"]') || 
                       document.querySelector('button') ||
@@ -36,32 +28,30 @@ def github_run():
             if(btn) { btn.click(); }
         """)
         
-        print("[*] Yönlendirme için 15 saniye bekleniyor...")
+        print("[*] Yönlendirme bekleniyor (15 sn)...")
         time.sleep(15)
         
-        print(f"[*] Mevcut URL: {driver.current_url}")
-        
-        # Sayfa içeriğini al
         source = driver.page_source
         
-        # Rakamları ayıkla (User ve Pass)
-        numbers = re.findall(r'value="([0-9]{10,12})"', source)
+        # SENİN VERDİĞİN FORMAT: 12 haneli rakamları yakalar
+        # Bu Regex tam olarak 12 haneli sayıları hedef alır
+        numbers = re.findall(r'value="([0-9]{12})"', source)
 
         if len(numbers) >= 2:
+            # İlk 12 hane User, ikinci 12 hane Pass
             user = numbers[0]
             pwd = numbers[1]
             
-            # Dosyayı oluştur
+            # Dosyaya tertemiz yazıyoruz
             with open("hesap_bilgileri.txt", "w", encoding="utf-8") as f:
                 f.write(f"USER: {user}\n")
                 f.write(f"PASS: {pwd}\n")
-                f.write(f"TARIH: {time.strftime('%d-%m-%Y %H:%M:%S')}\n")
+                f.write(f"GUNCELLEME: {time.strftime('%d-%m-%Y %H:%M:%S')}\n")
             
-            print(f"✅ BAŞARILI! Dosya oluşturuldu. User: {user}")
+            print(f"✅ BAŞARILI! Yakalanan Veri: {user} / {pwd}")
         else:
-            print("[-] HATA: User/Pass bulunamadı! Sayfa içeriği bot korumasına takılmış olabilir.")
-            # Hata varsa sayfanın bir kısmını yazdır ki ne gördüğümüzü anlayalım
-            print(f"[*] Sayfa içeriği (İlk 500 karakter): {source[:500]}")
+            print("[-] HATA: 12 haneli rakamlar bulunamadı. Sayfa yapısı değişmiş olabilir.")
+            print(f"[*] Sayfa özeti: {driver.title}")
             
     except Exception as e:
         print(f"[!] KRİTİK HATA: {e}")
