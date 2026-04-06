@@ -1,87 +1,100 @@
 import undetected_chromedriver as uc
+from selenium.webdriver.common.action_chains import ActionChains
 import time
 import re
 import os
+import random
 
 def fetch_stream_data():
-    print("[*] OPERASYON: Chrome maskesiyle sızılıyor...")
+    print("[*] OPERASYON: İleri seviye insan simülasyonu başlatıldı...")
     
     options = uc.ChromeOptions()
-    
-    # GitHub Actions ortamında mıyız kontrol et
     is_github = os.getenv("GITHUB_ACTIONS") == "true"
 
     if is_github:
-        # GitHub'da headless yerine sanal ekran (Xvfb) kullanılacağı için pencereyi normal açıyoruz
         options.add_argument("--window-size=1920,1080")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
     else:
-        # Kendi PC'nde tarayıcıyı yana kaydırır
         options.add_argument("--window-position=-3000,0")
         options.add_argument("--window-size=1920,1080")
 
-    # Gerçekçi User-Agent
-    ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-    options.add_argument(f'user-agent={ua}')
-
+    # Bot korumalarını aşmak için kritik ayarlar
+    options.add_argument('--disable-blink-features=AutomationControlled')
+    
     driver = None
     try:
-        # Sürüm hatasını çözmek için 146'ya sabitledik
         driver = uc.Chrome(version_main=146, options=options)
         
-        # URL'yi Secret'tan al, yoksa manuel linki kullan
+        # Webdriver izlerini temizle
+        driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
+            "source": "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
+        })
+
         target_url = os.getenv("TARGET_URL", "https://freeiptv2023-d.ottc.xyz/index.php")
-        
-        print(f"[*] Siteye giriliyor: {target_url}")
+        print(f"[*] Siteye giriş yapılıyor: {target_url}")
         driver.get(target_url)
         
-        print("[*] Sayfa yüklendi, 20 sn bekleniyor...")
-        time.sleep(20)
-        
-        print("[+] Butona basılıyor...")
-        driver.execute_script("""
-            var btn = document.querySelector('input[type="submit"]') || 
-                      document.querySelector('button') ||
-                      document.querySelector('.btn-primary');
-            if(btn) { 
-                btn.scrollIntoView();
-                btn.click(); 
-            }
-        """)
-        
-        print("[*] Yönlendirme kontrol ediliyor...")
+        # 1. Adım: Sayfada rastgele kaydırma yap (İnsan gibi davran)
+        print("[*] Sayfada insan simülasyonu yapılıyor...")
+        time.sleep(random.randint(5, 10))
+        driver.execute_script(f"window.scrollTo(0, {random.randint(300, 700)});")
+        time.sleep(random.randint(5, 10))
+
+        # 2. Adım: Butonu bul ve fareyi üzerine getir
+        print("[+] Buton aranıyor...")
+        try:
+            # Selenium ile butonu bul
+            elements = driver.find_elements("css selector", 'input[type="submit"], button, .btn-primary, #submit')
+            
+            if elements:
+                btn = elements[0]
+                print("[+] Buton bulundu. Fare simülasyonu ile tıklanıyor...")
+                
+                # Fareyi butonun üzerine götür ve tıkla
+                actions = ActionChains(driver)
+                actions.move_to_element(btn).pause(random.uniform(0.5, 1.5)).click().perform()
+            else:
+                print("[-] Buton seçici ile bulunamadı, JS ile zorlanıyor...")
+                driver.execute_script("document.querySelector('form').submit();")
+        except Exception as e:
+            print(f"[!] Tıklama hatası: {e}")
+
+        # 3. Adım: Yönlendirme Bekle (Sabırlı ol)
+        print("[*] Yönlendirme bekleniyor (45 sn)...")
         found = False
-        for i in range(30):
+        for i in range(45):
             if "action=view" in driver.current_url:
                 found = True
                 break
+            if i % 10 == 0:
+                print(f"[*] Bekleniyor... Mevcut URL: {driver.current_url}")
             time.sleep(1)
             
         if found:
-            print("[+] Hedef sayfa açıldı! Veriler çekiliyor...")
+            print("[+] BAŞARILI! Bilgiler çekiliyor...")
             time.sleep(5)
             source = driver.page_source
-            values = re.findall(r'value="([^"]+)"', source)
             
+            # Veri ayıklama
+            values = re.findall(r'value="([^"]+)"', source)
             creds = [v for v in values if v.isdigit() and len(v) >= 10]
             links = [v for v in values if v.startswith("http")]
 
             if len(creds) >= 2 and links:
-                host, user, pwd = links[0], creds[0], creds[1]
-                print(f"\n✅ BAŞARILI! HOST: {host} USER: {user}")
-
-                # Dosyaya kaydet (YAML bu ismi arayacak)
                 with open("hesap_bilgileri.txt", "w", encoding="utf-8") as f:
-                    f.write(f"HOST : {host}\nUSER : {user}\nPASS : {pwd}\n")
-                    f.write(f"M3U  : {host}/get.php?username={user}&password={pwd}&type=m3u_plus&output=ts\n")
+                    f.write(f"HOST : {links[0]}\nUSER : {creds[0]}\nPASS : {creds[1]}\n")
+                    f.write(f"Guncelleme: {time.ctime()}\n")
+                print("[+] Bilgiler dosyaya yazıldı.")
             else:
-                print("[-] Bilgiler ayıklanamadı.")
+                print("[-] Sayfa açıldı ama değerler bulunamadı.")
         else:
-            print(f"[!] HATA: Yönlendirme olmadı. Mevcut URL: {driver.current_url}")
+            print(f"[!] BAŞARISIZ: Site hala geçişe izin vermedi. URL: {driver.current_url}")
+            # Hata anında ne gördüğümüzü kaydet
+            driver.save_screenshot("hata_anlik.png")
 
     except Exception as e:
-        print(f"[!] Kritik Hata: {e}")
+        print(f"[!] Hata: {e}")
     finally:
         if driver:
             driver.quit()
