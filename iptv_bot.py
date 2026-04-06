@@ -19,7 +19,9 @@ def fetch_stream_data():
 
     driver = None
     try:
-        driver = uc.Chrome(options=options)
+        # HATA ÇÖZÜMÜ: GitHub'daki Chrome sürümüyle eşitlemek için version_main eklendi
+        print("[*] ChromeDriver sürümü ayarlanıyor (Sürüm: 146)...")
+        driver = uc.Chrome(options=options, version_main=146)
         
         # GitHub Secrets'tan URL'yi çekiyoruz
         url = os.getenv("TARGET_URL")
@@ -72,7 +74,7 @@ def fetch_stream_data():
 
                 print(f"\n✅ VERİLER ALINDI:\nHOST: {host}\nUSER: {user}")
 
-                # Dosyaya kaydet (Senin YAML dosyanla uyumlu isim)
+                # Dosyaya kaydet
                 with open("hesap_bilgileri.txt", "w", encoding="utf-8") as f:
                     f.write(f"--- IPTV GÜNCEL BİLGİLER ({time.ctime()}) ---\n")
                     f.write(f"HOST : {host}\n")
@@ -83,14 +85,16 @@ def fetch_stream_data():
                 print("[+] hesap_bilgileri.txt başarıyla güncellendi.")
             else:
                 print("[-] Veriler sayfa kaynağında bulunamadı. Site yapısı değişmiş olabilir.")
+                print("[DEBUG] Sayfa içeriği:", source[:500]) # Hata analizi için ilk 500 karakter
         else:
-            print("[!] Beklenen yönlendirme sayfası (action=view) açılmadı.")
+            print(f"[!] Beklenen sayfa açılmadı. Mevcut URL: {driver.current_url}")
 
     except Exception as e:
         print(f"[!] Hata oluştu: {e}")
 
     finally:
         if driver:
+            print("[*] Tarayıcı kapatılıyor...")
             driver.quit()
 
 if __name__ == "__main__":
