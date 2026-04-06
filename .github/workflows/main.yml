@@ -3,7 +3,7 @@ name: IPTV Otomatik Guncelle
 on:
   schedule:
     - cron: '0 3 * * *' # Her gece 03:00'da çalışır
-  workflow_dispatch:    # İstediğinde elinle başlatman için buton ekler
+  workflow_dispatch:    # Manuel başlatma butonu
 
 permissions:
   contents: write
@@ -33,13 +33,20 @@ jobs:
         run: python iptv_bot.py
 
       - name: Degisiklikleri Kaydet ve Push Et
+        if: always() # Hata alsa bile burayı dene (loglar için önemli)
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           
-          # Tüm değişiklikleri (hesap_bilgileri.txt dahil) ekle
-          git add .
+          # Sadece hesap_bilgileri.txt değişmişse gönder
+          git add hesap_bilgileri.txt || echo "Dosya bulunamadı"
           
-          # Eğer değişiklik varsa commit yap, yoksa hata verme devam et
           git commit -m "IPTV Listesi Güncellendi: $(date)" || echo "Değişiklik yok"
-          git push origin main
+          git push origin main || echo "Push yapılamadı"
+
+      - name: Hata Analizi - Ekran Goruntulerini Yukle
+        if: always() # Bot çalışsa da hata verse de resimleri sana verir
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-ekran-goruntuleri
+          path: "*.png"
