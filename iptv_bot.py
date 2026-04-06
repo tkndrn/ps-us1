@@ -1,10 +1,11 @@
 import undetected_chromedriver as uc
+from selenium.webdriver.common.action_chains import ActionChains
 import time
 import re
 import os
 
 def fetch_stream_data():
-    print("[*] Tarayıcı headless modda başlatılıyor...")
+    print("[*] Tarayıcı 'Ultra-Gizli' modda başlatılıyor...")
 
     options = uc.ChromeOptions()
     options.add_argument("--headless")
@@ -12,78 +13,84 @@ def fetch_stream_data():
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--window-size=1920,1080")
     
-    # Bot algılamasını zorlaştırmak için ek ayarlar
+    # Bot engelleme savar ayarlar
     options.add_argument('--disable-blink-features=AutomationControlled')
-
+    options.add_argument("--disable-extensions")
+    
     driver = None
     try:
-        # Sürüm hatasını çözmüştük (146)
+        # Sürüm 146 hatasını çözmüştük
         driver = uc.Chrome(options=options, version_main=146)
         
-        url = os.getenv("TARGET_URL")
-        if not url:
-            print("[!] Hata: TARGET_URL bulunamadı!")
-            return
+        # Tarayıcıyı bot değilmiş gibi gösteren script
+        driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
 
+        url = os.getenv("TARGET_URL")
         print(f"[*] Hedef siteye gidiliyor: {url}")
         driver.get(url)
 
-        print("[*] Sayfa yükleniyor (20 sn bekleniyor)...")
-        time.sleep(20)
+        print("[*] Sayfa yükleniyor (25 sn)...")
+        time.sleep(25)
 
-        # Hata ayıklama: Sayfa yüklendiğinde ne görüyoruz?
-        print(f"[DEBUG] Mevcut URL: {driver.current_url}")
-        driver.save_screenshot("debug_sayfa_ilk.png") 
+        driver.save_screenshot("1_sayfa_yuklendi.png")
 
-        print("[*] Buton aranıyor ve tıklanıyor (Agresif Mod)...")
-        # Tüm olası buton tiplerini deneyen gelişmiş script
-        driver.execute_script("""
-            var forms = document.forms;
-            if(forms.length > 0) {
-                forms[0].submit(); // Doğrudan formu gönder
-            } else {
-                var btn = document.querySelector('input[type="submit"]') || 
-                          document.querySelector('button') ||
-                          document.querySelector('.btn-primary') ||
-                          document.querySelector('a[href*="action"]');
-                if(btn) btn.click();
-            }
-        """)
+        print("[*] Buton aranıyor (Fare simülasyonu)...")
+        try:
+            # Butonu bulmaya çalış
+            btn = driver.execute_script("""
+                return document.querySelector('input[type="submit"]') || 
+                       document.querySelector('button') ||
+                       document.querySelector('.btn-primary') ||
+                       document.querySelector('#submit');
+            """)
+            
+            if btn:
+                print("[+] Buton bulundu, üzerine gidiliyor ve tıklanıyor...")
+                # Gerçek kullanıcı gibi butonun üzerine git ve tıkla
+                actions = ActionChains(driver)
+                # Script ile bulunan elementi selenium objesine çeviremediğimiz için 
+                # selenium metoduyla tekrar seçiyoruz:
+                elements = driver.find_elements("css selector", 'input[type="submit"], button, .btn-primary, #submit')
+                if elements:
+                    actions.move_to_element(elements[0]).click().perform()
+                else:
+                    # Eğer selenium bulamazsa JavaScript ile zorla tıkla
+                    driver.execute_script("arguments[0].click();", btn)
+            else:
+                print("[-] Buton bulunamadı, form doğrudan gönderiliyor...")
+                driver.execute_script("document.forms[0].submit();")
+        except Exception as btn_err:
+            print(f"[!] Buton tıklama hatası: {btn_err}")
 
-        print("[*] Yönlendirme bekleniyor (30 sn)...")
-        found = False
-        for i in range(30):
+        print("[*] Yönlendirme bekleniyor (35 sn)...")
+        for i in range(35):
             if "action=view" in driver.current_url:
-                found = True
+                print(f"[+] Başarılı! Yeni URL: {driver.current_url}")
                 break
             if i % 5 == 0:
-                print(f"[*] Bekleniyor... Şimdiki URL: {driver.current_url}")
+                print(f"[*] Bekleniyor... URL hala aynı: {driver.current_url}")
+                driver.save_screenshot(f"debug_step_{i}.png")
             time.sleep(1)
 
-        if found:
-            print("[+] Hedef sayfa açıldı! Veriler çekiliyor...")
+        if "action=view" in driver.current_url:
+            print("[+] Veriler çekiliyor...")
             time.sleep(5)
             source = driver.page_source
-            
-            # Veri çekme mantığı aynı
             values = re.findall(r'value="([^"]+)"', source)
             creds = [v for v in values if v.isdigit() and len(v) >= 10]
             links = [v for v in values if v.startswith("http")]
 
             if len(creds) >= 2 and links:
-                host = links[0]; user = creds[0]; pwd = creds[1]
                 with open("hesap_bilgileri.txt", "w", encoding="utf-8") as f:
-                    f.write(f"HOST : {host}\nUSER : {user}\nPASS : {pwd}\n")
-                print("[+] hesap_bilgileri.txt güncellendi.")
+                    f.write(f"HOST : {links[0]}\nUSER : {creds[0]}\nPASS : {creds[1]}\n")
+                print("[+] BİLGİLER KAYDEDİLDİ.")
             else:
-                print("[-] Veri bulunamadı. Sayfa kaynağını kontrol edin.")
-                driver.save_screenshot("debug_hata_sayfasi.png")
+                print("[-] Sayfa açıldı ama veri formatı farklı.")
         else:
-            print(f"[!] Yönlendirme başarısız. Son URL: {driver.current_url}")
-            driver.save_screenshot("debug_final_url.png")
+            print("[!] Yönlendirme gerçekleşmedi. Site GitHub'ı engellemiş olabilir.")
 
     except Exception as e:
-        print(f"[!] Hata: {e}")
+        print(f"[!] Kritik Hata: {e}")
     finally:
         if driver:
             driver.quit()
