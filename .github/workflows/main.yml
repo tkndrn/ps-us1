@@ -2,8 +2,8 @@ name: IPTV Otomatik Guncelle
 
 on:
   schedule:
-    - cron: '0 3 * * *'
-  workflow_dispatch:
+    - cron: '0 3 * * *' # Her gece 03:00'da çalışır
+  workflow_dispatch:    # Manuel başlatma butonu
 
 permissions:
   contents: write
@@ -12,7 +12,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Depoyu Cek
+        uses: actions/checkout@v3
         with:
           persist-credentials: true
 
@@ -21,17 +22,19 @@ jobs:
         with:
           python-version: '3.9'
 
-      - name: Kütüphaneleri Yukle
-        run: pip install undetected-chromedriver selenium
+      - name: Gerekli Kütüphaneleri Yukle
+        run: |
+          pip install undetected-chromedriver selenium
 
       - name: Botu Calistir
+        env:
+          TARGET_URL: ${{ secrets.TARGET_URL }}
         run: python iptv_bot.py
 
-      - name: Degisiklikleri Kaydet
+      - name: Degisiklikleri Kaydet ve Push Et
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add hesap_bilgileri.txt
-          # Değişiklik olsa da olmasa da commit yapmaya zorla (date ekleyerek)
-          git commit -m "Güncelleme: $(date)" || echo "Değişiklik yok ama devam et"
+          git commit -m "IPTV Listesi Güncellendi: $(date)" || echo "Değişiklik yok"
           git push origin main
