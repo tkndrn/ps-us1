@@ -4,29 +4,37 @@ import re
 import os
 
 def fetch_stream_data():
-    print("[*] Tarayıcı başlatılıyor...")
+    print("[*] Tarayıcı headless modda başlatılıyor...")
 
     options = uc.ChromeOptions()
-
-    # Tarayıcıyı görünmeyen bir konumda aç (headless yerine)
-    options.add_argument("--window-position=-3000,0")
+    options.add_argument("--headless")  # GitHub Actions için zorunlu
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--window-size=1920,1080")
 
     # User-Agent
-    ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+    ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
     options.add_argument(f'user-agent={ua}')
 
+    driver = None
     try:
-        driver = uc.Chrome(version_main=146, options=options)
+        # Sürümü otomatik algılaması için version_main'i kaldırdık
+        driver = uc.Chrome(options=options)
 
-        # Kullanıcıdan URL al
-        url = input("Site URL gir: ")
+        # URL'yi GitHub Secrets'tan veya environment'tan alıyoruz
+        # Eğer manuel girmek istersen burayı 'https://site.com' yapabilirsin
+        url = os.getenv("TARGET_URL")
+        if not url:
+            print("[!] Hata: TARGET_URL bulunamadı!")
+            return
+
+        print(f"[*] Hedef siteye gidiliyor: {url}")
         driver.get(url)
 
-        print("[*] Sayfa yükleniyor...")
+        print("[*] Sayfa yükleniyor (15 sn bekleniyor)...")
         time.sleep(15)
 
-        print("[*] Buton kontrol ediliyor...")
+        print("[*] Buton aranıyor ve tıklanıyor...")
         driver.execute_script("""
             var btn = document.querySelector('input[type="submit"]') || 
                       document.querySelector('button') ||
@@ -37,9 +45,8 @@ def fetch_stream_data():
             }
         """)
 
-        print("[*] Yönlendirme bekleniyor...")
+        print("[*] Yönlendirme kontrol ediliyor...")
         found = False
-
         for _ in range(30):
             if "action=view" in driver.current_url:
                 found = True
@@ -47,11 +54,9 @@ def fetch_stream_data():
             time.sleep(1)
 
         if found:
-            print("[+] Yeni sayfa açıldı, veri çekiliyor...")
-            time.sleep(3)
-
+            print("[+] Sayfa yakalandı, veriler ayrıştırılıyor...")
+            time.sleep(5)
             source = driver.page_source
-
             values = re.findall(r'value="([^"]+)"', source)
 
             creds = [v for v in values if v.isdigit() and len(v) >= 10]
@@ -62,38 +67,34 @@ def fetch_stream_data():
                 user = creds[0]
                 pwd = creds[1]
 
-                print("\n" + "="*40)
-                print("✅ İŞLEM BAŞARILI")
-                print(f"HOST : {host}")
-                print(f"USER : {user}")
-                print(f"PASS : {pwd}")
-                print("="*40)
+                result = f"""
+========================================
+✅ İŞLEM BAŞARILI
+HOST : {host}
+USER : {user}
+PASS : {pwd}
+========================================
+"""
+                print(result)
 
-                m3u_path = os.path.join(os.getcwd(), "iptv_listem.m3u")
-
-                with open(m3u_path, "w", encoding="utf-8") as f:
-                    f.write("#EXTM3U\n")
-                    f.write(f"#EXTINF:-1,OTOMATIK IPTV\n")
-                    f.write(f"{host}/get.php?username={user}&password={pwd}&type=m3u_plus&output=ts\n")
-
-                print(f"[+] M3U oluşturuldu: {m3u_path}")
-
+                # M3U Dosyasını oluştur
+                m3u_content = f"#EXTM3U\n#EXTINF:-1,OTOMATIK IPTV\n{host}/get.php?username={user}&password={pwd}&type=m3u_plus&output=ts\n"
+                with open("iptv_listem.m3u", "w", encoding="utf-8") as f:
+                    f.write(m3u_content)
+                
+                print("[+] iptv_listem.m3u dosyası oluşturuldu.")
             else:
-                print("[-] Gerekli veriler bulunamadı.")
-
+                print("[-] Gerekli veriler (user/pass/host) bulunamadı.")
         else:
-            print("[!] Yönlendirme olmadı veya sayfa değişmedi.")
+            print("[!] Beklenen sayfa yönlendirmesi gerçekleşmedi.")
 
     except Exception as e:
-        print(f"[!] Hata: {e}")
+        print(f"[!] Beklenmedik Hata: {e}")
 
     finally:
-        print("[*] Tarayıcı kapatılıyor...")
-        try:
+        if driver:
+            print("[*] Tarayıcı kapatılıyor...")
             driver.quit()
-        except:
-            pass
-
 
 if __name__ == "__main__":
     fetch_stream_data()
