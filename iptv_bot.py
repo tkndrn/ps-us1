@@ -17,22 +17,28 @@ def fetch_stream_data():
         driver = uc.Chrome(version_main=146, options=options)
         target_url = os.getenv("TARGET_URL", "https://freeiptv2023-d.ottc.xyz/index.php")
         
+       try:
+        driver = uc.Chrome(version_main=146, options=options)
+        target_url = os.getenv("TARGET_URL", "https://freeiptv2023-d.ottc.xyz/index.php")
+        
         print(f"[*] Ana sayfaya giriliyor: {target_url}")
         driver.get(target_url)
-        time.sleep(15) # Sitenin korumasının geçmesi için bekle
+        time.sleep(15) 
 
         print("[*] Form verileri zorlanıyor...")
-        # Butona basmak yerine, sitenin beklediği formu JavaScript ile 'submit' ediyoruz
         driver.execute_script("""
-            var form = document.querySelector('form');
-            if(form) {
-                // Formun içine gizli bir submit tetikleyicisi ekle ve gönder
-                var input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'submit';
-                input.value = 'submit';
-                form.appendChild(input);
-                form.submit();
+            try {
+                var form = document.querySelector('form');
+                if(form) {
+                    var input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'submit';
+                    input.value = 'submit';
+                    form.appendChild(input);
+                    HTMLFormElement.prototype.submit.call(form);
+                }
+            } catch (e) {
+                console.log("JS Hatası: " + e);
             }
         """)
 
