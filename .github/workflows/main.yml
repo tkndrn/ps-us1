@@ -2,8 +2,8 @@ name: IPTV Otomatik Guncelle
 
 on:
   schedule:
-    - cron: '0 3 * * *' # Her gece 03:00'da çalışır
-  workflow_dispatch:    # Manuel başlatma butonu
+    - cron: '0 3 * * *'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -14,39 +14,29 @@ jobs:
     steps:
       - name: Depoyu Cek
         uses: actions/checkout@v3
-        with:
-          persist-credentials: true
 
       - name: Python Kur
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
 
-      - name: Kütüphaneleri Yukle
+      - name: Kütüphaneleri ve Sanal Ekrani Kur
         run: |
-          python -m pip install --upgrade pip
+          sudo apt-get update
+          sudo apt-get install -y xvfb
           pip install -r requirements.txt
 
-      - name: Botu Calistir
+      - name: Botu Sanal Ekranla Calistir
         env:
           TARGET_URL: ${{ secrets.TARGET_URL }}
-        run: python iptv_bot.py
+        run: |
+          # xvfb-run komutu, botun sanki bir monitör varmış gibi çalışmasını sağlar
+          xvfb-run --server-args="-screen 0 1920x1080x24" python iptv_bot.py
 
-      - name: Degisiklikleri Kaydet ve Push Et
-        if: always() # Hata alsa bile burayı dene (loglar için önemli)
+      - name: Degisiklikleri Kaydet
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          
-          # Sadece hesap_bilgileri.txt değişmişse gönder
-          git add hesap_bilgileri.txt || echo "Dosya bulunamadı"
-          
-          git commit -m "IPTV Listesi Güncellendi: $(date)" || echo "Değişiklik yok"
-          git push origin main || echo "Push yapılamadı"
-
-      - name: Hata Analizi - Ekran Goruntulerini Yukle
-        if: always() # Bot çalışsa da hata verse de resimleri sana verir
-        uses: actions/upload-artifact@v4
-        with:
-          name: debug-ekran-goruntuleri
-          path: "*.png"
+          git add hesap_bilgileri.txt
+          git commit -m "IPTV Güncellendi: $(date)" || echo "Değişiklik yok"
+          git push origin main
