@@ -4,74 +4,90 @@ import re
 import os
 
 def fetch_stream_data():
-    print("[*] SON DENEME: Form verisi zorlama modu...")
+    print("[*] OPERASYON: Form zorlama ve prototip modu başlatıldı...")
     
     options = uc.ChromeOptions()
-    options.add_argument("--headless")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--window-size=1920,1080")
+    is_github = os.getenv("GITHUB_ACTIONS") == "true"
+
+    if is_github:
+        options.add_argument("--window-size=1920,1080")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+    else:
+        options.add_argument("--window-position=-3000,0")
+        options.add_argument("--window-size=1920,1080")
 
     driver = None
     try:
+        # GitHub'daki Chrome 146 sürümüyle eşleşme
         driver = uc.Chrome(version_main=146, options=options)
-        target_url = os.getenv("TARGET_URL", "https://freeiptv2023-d.ottc.xyz/index.php")
         
-       try:
-        driver = uc.Chrome(version_main=146, options=options)
         target_url = os.getenv("TARGET_URL", "https://freeiptv2023-d.ottc.xyz/index.php")
-        
-        print(f"[*] Ana sayfaya giriliyor: {target_url}")
+        print(f"[*] Siteye giriliyor: {target_url}")
         driver.get(target_url)
-        time.sleep(15) 
+        
+        # Sayfanın ve korumaların yüklenmesi için bekleme
+        print("[*] Bekleniyor (20 sn)...")
+        time.sleep(20)
 
-        print("[*] Form verileri zorlanıyor...")
+        print("[*] Form gönderiliyor (Prototip metodu)...")
+        # 'form.submit is not a function' hatasını aşmak için en sağlam yöntem:
         driver.execute_script("""
             try {
                 var form = document.querySelector('form');
                 if(form) {
-                    var input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = 'submit';
-                    input.value = 'submit';
-                    form.appendChild(input);
+                    var hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'hidden';
+                    hiddenInput.name = 'submit';
+                    hiddenInput.value = 'submit';
+                    form.appendChild(hiddenInput);
+                    
+                    // Orijinal submit fonksiyonunu çağır (isim çakışmasını önler)
                     HTMLFormElement.prototype.submit.call(form);
+                } else {
+                    console.log("Form bulunamadı!");
                 }
             } catch (e) {
                 console.log("JS Hatası: " + e);
             }
         """)
 
-        print("[*] Yönlendirme bekleniyor...")
+        print("[*] Yönlendirme kontrol ediliyor...")
         found = False
         for i in range(30):
             if "action=view" in driver.current_url:
                 found = True
                 break
+            if i % 10 == 0:
+                print(f"[*] Bekleniyor... Mevcut URL: {driver.current_url}")
             time.sleep(1)
-
+            
         if found:
-            print("[+] SIZMA BAŞARILI!")
+            print("[+] BAŞARILI! Sayfa yönlendi, veriler çekiliyor...")
             time.sleep(5)
             source = driver.page_source
+            
+            # Regex ile bilgileri çekme
             values = re.findall(r'value="([^"]+)"', source)
             creds = [v for v in values if v.isdigit() and len(v) >= 10]
             links = [v for v in values if v.startswith("http")]
 
             if len(creds) >= 2 and links:
+                host, user, pwd = links[0], creds[0], creds[1]
                 with open("hesap_bilgileri.txt", "w", encoding="utf-8") as f:
-                    f.write(f"HOST : {links[0]}\nUSER : {creds[0]}\nPASS : {creds[1]}\n")
-                print("[+] VERİLER REPOYA YAZILDI.")
+                    f.write(f"HOST : {host}\nUSER : {user}\nPASS : {pwd}\n")
+                    f.write(f"Son Guncelleme: {time.ctime()}\n")
+                print(f"[+] BİLGİLER ALINDI: {user}")
             else:
-                print("[-] Sayfa açıldı ama değerler boş.")
+                print("[-] Bilgiler ayıklanamadı, sayfa yapısı farklı.")
         else:
-            print(f"[!] Site geçişi engelledi. Mevcut URL: {driver.current_url}")
-            # Bu aşamada hala olmuyorsa site GitHub IP'sini tamamen bloklamıştır.
-            
+            print(f"[!] HATA: Site geçişe izin vermedi. URL: {driver.current_url}")
+
     except Exception as e:
-        print(f"[!] Hata: {e}")
+        print(f"[!] Kritik Hata: {e}")
     finally:
         if driver:
+            print("[*] Tarayıcı kapatılıyor...")
             driver.quit()
 
 if __name__ == "__main__":
