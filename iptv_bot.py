@@ -11,21 +11,20 @@ def fetch_stream_data():
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--window-size=1920,1080")
+    options.add_argument('--disable-gpu')
 
-    # User-Agent
+    # Gerçekçi bir User-Agent
     ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
     options.add_argument(f'user-agent={ua}')
 
     driver = None
     try:
-        # Sürümü otomatik algılaması için version_main'i kaldırdık
         driver = uc.Chrome(options=options)
-
-        # URL'yi GitHub Secrets'tan veya environment'tan alıyoruz
-        # Eğer manuel girmek istersen burayı 'https://site.com' yapabilirsin
+        
+        # GitHub Secrets'tan URL'yi çekiyoruz
         url = os.getenv("TARGET_URL")
         if not url:
-            print("[!] Hata: TARGET_URL bulunamadı!")
+            print("[!] Hata: TARGET_URL bulunamadı! GitHub Secrets ayarlarını kontrol edin.")
             return
 
         print(f"[*] Hedef siteye gidiliyor: {url}")
@@ -38,7 +37,8 @@ def fetch_stream_data():
         driver.execute_script("""
             var btn = document.querySelector('input[type="submit"]') || 
                       document.querySelector('button') ||
-                      document.querySelector('.btn-primary');
+                      document.querySelector('.btn-primary') ||
+                      document.querySelector('#submit');
             if(btn) { 
                 btn.scrollIntoView();
                 btn.click(); 
@@ -54,11 +54,14 @@ def fetch_stream_data():
             time.sleep(1)
 
         if found:
-            print("[+] Sayfa yakalandı, veriler ayrıştırılıyor...")
+            print("[+] Yeni sayfa açıldı, veriler çekiliyor...")
             time.sleep(5)
             source = driver.page_source
+            
+            # Değerleri ayıkla (value="içerik")
             values = re.findall(r'value="([^"]+)"', source)
 
+            # Sayısal olanlar (User/Pass) ve Link (Host) ayıklama
             creds = [v for v in values if v.isdigit() and len(v) >= 10]
             links = [v for v in values if v.startswith("http")]
 
@@ -67,33 +70,27 @@ def fetch_stream_data():
                 user = creds[0]
                 pwd = creds[1]
 
-                result = f"""
-========================================
-✅ İŞLEM BAŞARILI
-HOST : {host}
-USER : {user}
-PASS : {pwd}
-========================================
-"""
-                print(result)
+                print(f"\n✅ VERİLER ALINDI:\nHOST: {host}\nUSER: {user}")
 
-                # M3U Dosyasını oluştur
-                m3u_content = f"#EXTM3U\n#EXTINF:-1,OTOMATIK IPTV\n{host}/get.php?username={user}&password={pwd}&type=m3u_plus&output=ts\n"
-                with open("iptv_listem.m3u", "w", encoding="utf-8") as f:
-                    f.write(m3u_content)
+                # Dosyaya kaydet (Senin YAML dosyanla uyumlu isim)
+                with open("hesap_bilgileri.txt", "w", encoding="utf-8") as f:
+                    f.write(f"--- IPTV GÜNCEL BİLGİLER ({time.ctime()}) ---\n")
+                    f.write(f"HOST : {host}\n")
+                    f.write(f"USER : {user}\n")
+                    f.write(f"PASS : {pwd}\n")
+                    f.write(f"M3U  : {host}/get.php?username={user}&password={pwd}&type=m3u_plus&output=ts\n")
                 
-                print("[+] iptv_listem.m3u dosyası oluşturuldu.")
+                print("[+] hesap_bilgileri.txt başarıyla güncellendi.")
             else:
-                print("[-] Gerekli veriler (user/pass/host) bulunamadı.")
+                print("[-] Veriler sayfa kaynağında bulunamadı. Site yapısı değişmiş olabilir.")
         else:
-            print("[!] Beklenen sayfa yönlendirmesi gerçekleşmedi.")
+            print("[!] Beklenen yönlendirme sayfası (action=view) açılmadı.")
 
     except Exception as e:
-        print(f"[!] Beklenmedik Hata: {e}")
+        print(f"[!] Hata oluştu: {e}")
 
     finally:
         if driver:
-            print("[*] Tarayıcı kapatılıyor...")
             driver.quit()
 
 if __name__ == "__main__":
