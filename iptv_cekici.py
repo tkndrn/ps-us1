@@ -22,7 +22,7 @@ def freeiptv_enigma2_ready():
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-blink-features=AutomationControlled")
-    # GitHub sunucusunda ekran olmadığı için headless mod şarttır:
+    # GitHub bulut sunucusunda ekran olmadığı için headless mod zorunludur:
     options.add_argument("--headless=new")
 
     driver = None
@@ -32,6 +32,7 @@ def freeiptv_enigma2_ready():
         driver.get("https://freeiptv2023-d.ottc.xyz/index.php")
         print("[*] Sayfa açıldı, Cloudflare / Turnstile bekleniyor...")
 
+        # Turnstile doğrulamasının tamamlanıp butona tıklanabilir olmasını bekle
         wait = WebDriverWait(driver, 30)
         create_btn = wait.until(EC.element_to_be_clickable((By.ID, "create-btn")))
         
@@ -43,9 +44,11 @@ def freeiptv_enigma2_ready():
 
         source = driver.page_source
 
+        # Kullanıcı adı ve şifre desenlerini yakala
         username_match = re.search(r'Username.*?(\d{9,})', source, re.IGNORECASE | re.DOTALL)
         password_match = re.search(r'Password.*?(\d{9,})', source, re.IGNORECASE | re.DOTALL)
         
+        # CDN / Bootstrap linklerini eleyip gerçek IPTV host adresini bul
         host_matches = re.findall(r'(http[s]?://[^\s"\'<>]+)', source)
         real_host = "http://freeiptv.ottc.xyz:80"
         
@@ -57,6 +60,7 @@ def freeiptv_enigma2_ready():
                     break
 
         if username_match and password_match:
+            # Gelen verilerin doğru sırayla yerleşmesi için eşleşme düzeni
             user = password_match.group(1)
             pwd = username_match.group(1)
 
